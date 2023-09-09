@@ -1,0 +1,280 @@
+require("dotenv").config();
+const express = require("express");
+const http = require("http");
+const socketIO = require('socket.io');
+
+const app = express();
+
+const server = http.createServer(app);
+
+const PORT = process.env.PORT || 5000;
+
+function makeId(length) {
+    var result = '';
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for (var i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}
+
+var possibleAccounts = {};
+var globalState = {};
+var gameSettingsObj;
+
+const io = socketIO(server);
+io.on('connection', (socket) => {
+    console.log('client connected on websocket');
+
+    let userBEI = {
+        "guest": true,
+        "id": null,
+        "roomLabel": null,
+        "loggedIn": false,
+        "accountUsername": null
+    };
+
+    socket.on('userCreatesAccount', (createdAccount) => {
+        possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: null, pendingAlerts: {}, friendRequests: []}
+        socket.emit('userAccountValid');
+    })
+
+    socket.on('userLogsIn', (loggedInAccount) => {
+        if (possibleAccounts[loggedInAccount.username]) {
+            if (loggedInAccount.password === possibleAccounts[loggedInAccount.username].password) {
+                possibleAccounts[loggedInAccount.username].idHolder = socket.id;
+                userBEI.accountUsername = loggedInAccount.username
+                socket.emit('logInSuccessful')
+            }
+        }
+        console.log(possibleAccounts)
+    })
+
+    socket.on('grabbingUserInfoForProfilePage', () => {
+        socket.emit('sendingBackUserForProfilePage', possibleAccounts[userBEI.accountUsername])
+    })
+
+    socket.on('newGame', (rS, ante, timer, progressiveBlinds, gameStyle) => {
+        var roomName = makeId(5);
+
+        socket.join(roomName);
+
+        userBEI['roomLabel'] = roomName;
+
+        gameSettingsObj = {};
+
+        gameSettingsObj['players'] = [];
+
+        gameSettingsObj['idHolder'] = roomName;
+
+        gameSettingsObj['pNickNames'] = [];
+
+        gameSettingsObj['pChips'] = [];
+
+        gameSettingsObj['gameStarted'] = false;
+
+        gameSettingsObj['currentRoomSize'] = 1;
+
+        gameSettingsObj['gameStarted'] = false;
+
+        gameSettingsObj['updatedPChips'] = [];
+
+        gameSettingsObj['desiredRoomSize'] = rS;
+
+        gameSettingsObj['ante'] = ante;
+
+        gameSettingsObj['timer'] = timer;
+
+        gameSettingsObj['gameStyle'] = gameStyle
+
+        gameSettingsObj['progressiveBlinds'] = progressiveBlinds;
+
+        gameSettingsObj['playerObjects'] = {};
+
+        globalState[roomName.toString()] = gameSettingsObj;
+
+        socket.emit('gameStateCreated')
+
+        console.log(roomName);
+
+    })
+
+    socket.on('playerEntersGameCode', (gameCode) => {
+        if (globalState[gameCode]) {
+            userBEI.roomLabel = gameCode;
+            socket.join(gameCode)
+            socket.emit('userIsClearedToJoinGame')
+        }
+    })
+
+    socket.on('playerSubmitsInGameDisplayInfo', (displayObj) => {
+        if (globalState[userBEI.roomLabel]) {
+            globalState[userBEI.roomLabel].pNickNames.push(displayObj.enteredDisplayName)
+            globalState[userBEI.roomLabel].pChips.push(Number(displayObj.enteredDisplayBuyIn))
+            globalState[userBEI.roomLabel].players.push(userBEI.id)
+
+            for (let i = 0; i < globalState[userBEI.roomLabel].pNickNames.length; i++) {
+                if (displayObj.enteredDisplayName === globalState[userBEI.roomLabel].pNickNames[i]) {
+                    globalState[userBEI.roomLabel].playerObjects[i + 1] = {'displayName': globalState[userBEI.roomLabel].pNickNames[i], 'chipCount': globalState[userBEI.roomLabel].pChips[i], 'inGameTurn': i + 1}
+                }
+            }
+
+            // console.log(globalState[userBEI.roomLabel]);
+
+            io.to(userBEI.roomLabel).emit('sendingUserToGamePage', userBEI.roomLabel, globalState[userBEI.roomLabel]);
+        }
+    })
+
+    socket.on('playerChecks', () => {
+        console.log('player checks');
+        io.to(userBEI.roomLabel).emit('sendingBackPlayerCheck')
+    })
+
+    socket.on('bounds', (bounds) => {
+        console.log(bounds)
+    })
+
+    socket.on('initGameStarted', (info, info2) => {
+        io.to(userBEI.roomLabel).emit('sendingBackGameStart', info)
+    })
+
+    socket.on('currentRoundHasJustEnded', () => {
+        // io.to(userBEI.roomLabel).emit('sendingBackSubmittedWinnerOfRound');
+        io.to(userBEI.roomLabel).emit('signlaingEndOfCurrentRound');
+    })
+
+    socket.on('roundIsOver', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackSubmittedWinnerOfRound');
+    })
+
+    socket.on('nextRoundInitiated', () => {
+        io.to(userBEI.roomLabel).emit('displayingNextRoundInitiation');
+    })
+
+
+    //////////////////////////////////////////////////////////////////
+
+    socket.on('userSendsFriendRequest', (friendUsername) => {
+        if (possibleAccounts[friendUsername]) {
+            possibleAccounts[friendUsername].pendingAlerts[userBEI.accountUsername] = {'type': 'FriendRequest', 'sender': userBEI.accountUsername, 'id': userBEI.accountUsername + '_FR'}
+            possibleAccounts[friendUsername].friendRequests.push(userBEI.accountUsername);
+            io.to(possibleAccounts[friendUsername].idHolder).emit('sendingFriendRequestToReciever', userBEI.accountUsername)
+            socket.emit('friendRequestCleared');
+        }
+    })
+
+    socket.on('grabbingAnyPendingAlerts', () => {
+        socket.emit('sendingBackAnyPendingAlerts', possibleAccounts[userBEI.accountUsername].friendRequests)
+    })
+
+    //////////////////////////////////////////////////////////////////
+
+    socket.on('currentRoundHasEnded', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackCurrentRoundEnder');
+    })
+
+    // PLAYER IN GAME LISTENERS //
+
+    socket.on('pSubmitsBet', (turn, betAmount, playerChips) => {
+        io.to(userBEI.roomLabel).emit('playerSubmitsBet', turn, betAmount, playerChips)
+    })
+
+    socket.on('pCallsBet', (turn, callAmount, playerChips) => {
+        io.to(userBEI.roomLabel).emit('playerCallsBet', turn, callAmount, playerChips);
+    })
+
+    socket.on('pFolds', (turn) => {
+        io.to(userBEI.roomLabel).emit('playerFolds', turn)
+    })
+
+    socket.on('pChecks', (turn) => {
+        io.to(userBEI.roomLabel).emit('playerChecks', turn)
+    })
+
+    socket.on('WinnerHasBeenChosen', (winner) => {
+        console.log(winner);
+        io.to(userBEI.roomLabel).emit('sendingBackWinnerOfRound', winner)
+    })
+
+    socket.on('initNextRound', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackInitNextRound');
+    })
+
+    ///////// P1 /////////
+    socket.on('p1SubmitsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP1Bet', chips)
+    })
+
+    socket.on('p1Checks', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP1Check');
+    })
+
+    socket.on('p1CallsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP1CalledBet', chips)
+    })
+
+    socket.on('p1Folds', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP1Fold');
+    })
+
+    ///////// P2 /////////
+    socket.on('p2SubmitsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP2Bet', chips)
+    })
+
+    socket.on('p2Checks', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP2Check');
+    })
+
+    socket.on('p2CallsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP2CalledBet', chips)
+    })
+
+    socket.on('p2Folds', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP2Fold');
+    })
+
+    ///////// P3 /////////
+    socket.on('p3SubmitsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP3Bet', chips)
+    })
+
+    socket.on('p3Checks', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP3Check');
+    })
+
+    socket.on('p3CallsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP3CalledBet', chips)
+    })
+
+    socket.on('p3Folds', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP3Fold');
+    })
+
+    ///////// P4 /////////
+    socket.on('p4SubmitsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP4Bet', chips)
+    })
+
+    socket.on('p4Checks', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP4Check');
+    })
+
+    socket.on('p4CallsBet', (chips) => {
+        io.to(userBEI.roomLabel).emit('sendingBackP4CalledBet', chips)
+    })
+
+    socket.on('p4Folds', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackP4Fold');
+    })
+    
+
+    // setInterval(() => {
+    //     io.emit('ping', { data: (new Date()) / 1 });
+    // }, 1000);
+});
+
+
+
+server.listen(PORT, () => console.log(`Server Running on Port: http://localhost:${PORT}`));
