@@ -25,6 +25,10 @@ const Home = () => {
     
     const [user, setUser] = useState(new User(makeId(30), 'guest', false, {}, false, {}, socket))
 
+    user.socket.on('userConnects', () => {
+        user.socket.emit('confirmedUserConnects', (user.socket.id));  
+    })
+
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>
             <ProfileButton sentU={user} />

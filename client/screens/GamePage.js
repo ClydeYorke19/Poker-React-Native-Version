@@ -16,8 +16,6 @@ const GamePage = ({route}) => {
     let user = route.params.paramKey
     let sentGameObj = route.params.gameKey
 
-    let [pGObj, setPGObj] = useState();
-
     const [sentGameSize, setSentGameSize] = useState(sentGameObj.desiredRoomSize);
     
     const [gameStarted, setGameStarted] = useState(false);
@@ -26,18 +24,16 @@ const GamePage = ({route}) => {
 
     let PGameView;
 
-    let gLogic = {}
-
     let GModle;
 
     for (let i = 0; i < sentGameObj.pNickNames.length; i++) {
-        if (user.playerGameObj.displayName === sentGameObj.pNickNames[i]) {
+        if (user.socket.id === sentGameObj.players[i]) {
             user.playerGameObj.turn = i + 1;
         }
     }
 
     GModle = (
-        <GameViewModel rS={sentGameSize} user={user} args={sentGameObj.pNickNames} gameObj={sentGameObj} gameStarted={gameStarted} setGameStart={setGameStarted} playerView={tableView} setPlayerView={setTableView} gModel={gLogic} />
+        <GameViewModel rS={sentGameSize} user={user} gameObj={sentGameObj} gameStarted={gameStarted} setGameStart={setGameStarted} playerView={tableView} setPlayerView={setTableView} />
     )
 
     if (gameStarted) {
@@ -45,15 +41,7 @@ const GamePage = ({route}) => {
             <PlayerGameView userObj={user} gameStarted={gameStarted} playerView={tableView} setPlayerView={setTableView} />
         )
     }
-
-    // user.socket.on('sendingBackGameStart', () => {
-    //     setGameStarted(true)
-    //     setTableView(false)
-    //     gLogic = new GameModel(sentGameSize, null, 0, 0, 0, gameArray, 0, 0, 0);
-        
-    // })
     
-
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>
             {GModle}
