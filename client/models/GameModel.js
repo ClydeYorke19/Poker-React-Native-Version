@@ -37,7 +37,21 @@ class GameModel {
     }
 
     initRound(state) {
-        if (this.gameSize === 4) {
+        if (this.gameSize === 2) {
+            if (this.bigBlind === 1) {
+                this.gameArray = [2, 1];
+            } else if (this.bigBlind === 2) {
+                this.gameArray = [1, 2];
+            }
+        } else if (this.gameSize === 3) {
+            if (this.bigBlind === 1) {
+                this.gameArray = [2, 3, 1];
+            } else if (this.bigBlind === 2) {
+                this.gameArray = [3, 1, 2];
+            } else if (this.bigBlind === 3) {
+                this.gameArray = [1, 2, 3];
+            }
+        } else if (this.gameSize === 4) {
             if (this.bigBlind === 1) {
                 this.gameArray = [2, 3, 4, 1];
             } else if (this.bigBlind === 2) {
@@ -58,6 +72,74 @@ class GameModel {
                 this.gameArray = [5, 1, 2, 3, 4];
             } else if (this.bigBlind === 5) {
                 this.gameArray = [1, 2, 3, 4, 5];
+            }
+        } else if (this.gameSize === 6) {
+            if (this.bigBlind === 1) {
+                this.gameArray = [2, 3, 4, 5, 6, 1];
+            } else if (this.bigBlind === 2) {
+                this.gameArray = [3, 4, 5, 6, 1, 2];
+            } else if (this.bigBlind === 3) {
+                this.gameArray = [4, 5, 6, 1, 2, 3];
+            } else if (this.bigBlind === 4) {
+                this.gameArray = [5, 6, 1, 2, 3, 4];
+            } else if (this.bigBlind === 5) {
+                this.gameArray = [6, 1, 2, 3, 4, 5];
+            } else if (this.bigBlind === 6) {
+                this.gameArray = [1, 2, 3, 4, 5, 6];
+            }
+        } else if (this.gameSize === 7) {
+            if (this.bigBlind === 1) {
+                this.gameArray = [2, 3, 4, 5, 6, 7, 1];
+            } else if (this.bigBlind === 2) {
+                this.gameArray = [3, 4, 5, 6, 7, 1, 2];
+            } else if (this.bigBlind === 3) {
+                this.gameArray = [4, 5, 6, 7, 1, 2, 3];
+            } else if (this.bigBlind === 4) {
+                this.gameArray = [5, 6, 7, 1, 2, 3, 4];
+            } else if (this.bigBlind === 5) {
+                this.gameArray = [6, 7, 1, 2, 3, 4, 5];
+            } else if (this.bigBlind === 6) {
+                this.gameArray = [7, 1, 2, 3, 4, 5, 6];
+            } else if (this.bigBlind === 7) {
+                this.gameArray = [1, 2, 3, 4, 5, 6, 7];
+            }
+        } else if (this.gameSize === 8) {
+            if (this.bigBlind === 1) {
+                this.gameArray = [2, 3, 4, 5, 6, 7, 8, 1];
+            } else if (this.bigBlind === 2) {
+                this.gameArray = [3, 4, 5, 6, 7, 8, 1, 2];
+            } else if (this.bigBlind === 3) {
+                this.gameArray = [4, 5, 6, 7, 8, 1, 2, 3];
+            } else if (this.bigBlind === 4) {
+                this.gameArray = [5, 6, 7, 8, 1, 2, 3, 4];
+            } else if (this.bigBlind === 5) {
+                this.gameArray = [6, 7, 8, 1, 2, 3, 4, 5];
+            } else if (this.bigBlind === 6) {
+                this.gameArray = [7, 8, 1, 2, 3, 4, 5, 6];
+            } else if (this.bigBlind === 7) {
+                this.gameArray = [8, 1, 2, 3, 4, 5, 6, 7];
+            } else if (this.bigBlind === 8) {
+                this.gameArray = [1, 2, 3, 4, 5, 6, 7, 8];
+            }
+        } else if (this.gameSize === 9) {
+            if (this.bigBlind === 1) {
+                this.gameArray = [2, 3, 4, 5, 6, 7, 8, 9, 1];
+            } else if (this.bigBlind === 2) {
+                this.gameArray = [3, 4, 5, 6, 7, 8, 9, 1, 2];
+            } else if (this.bigBlind === 3) {
+                this.gameArray = [4, 5, 6, 7, 8, 9, 1, 2, 3];
+            } else if (this.bigBlind === 4) {
+                this.gameArray = [5, 6, 7, 8, 9, 1, 2, 3, 4];
+            } else if (this.bigBlind === 5) {
+                this.gameArray = [6, 7, 8, 9, 1, 2, 3, 4, 5];
+            } else if (this.bigBlind === 6) {
+                this.gameArray = [7, 8, 9, 1, 2, 3, 4, 5, 6];
+            } else if (this.bigBlind === 7) {
+                this.gameArray = [8, 9, 1, 2, 3, 4, 5, 6, 7];
+            } else if (this.bigBlind === 8) {
+                this.gameArray = [9, 1, 2, 3, 4, 5, 6, 7, 8];
+            } else if (this.bigBlind === 9) {
+                this.gameArray = [1, 2, 3, 4, 5, 6, 7, 8, 9];
             }
         }
 
@@ -172,7 +254,6 @@ class GameModel {
             } 
         }
     }
-
 
     addPlayer2FoldedArr(turn) {
         this.pFoldedArr.push(turn);

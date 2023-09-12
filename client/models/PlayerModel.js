@@ -9,7 +9,11 @@ class Player {
     socket;
     setterChips;
     currentGameTurn;
-    betToCall
+    betToCall;
+    setterBetAmount;
+    tapCount = 0;
+    setterTapCount;
+    setterInitCheck;
 
     constructor(displayName, chips, turn, betAmount, folded, roomId, socket) {
         this.displayName = displayName;
@@ -19,6 +23,23 @@ class Player {
         this.folded = folded;
         this.roomId = roomId;
         this.socket = socket;
+    }
+
+    initCheck() {
+        if (this.currentGameTurn === this.turn) {
+            this.tapCount++;
+
+            if (this.tapCount >= 2) {
+                this.checks();
+            }
+            
+            if (this.tapCount > 0) {
+                setTimeout(() => {
+                    this.tapCount = 0;
+                }, 3000)
+            }
+        }
+
     }
 
     checks() {
@@ -32,6 +53,7 @@ class Player {
             this.chips -= arg
             this.socket.emit('pSubmitsBet', this.turn, arg, this.chips)
         }
+        this.setterBetAmount(0);
     }
 
     displayBet() {
@@ -45,10 +67,6 @@ class Player {
         }
     }
 
-    displayCall() {
-
-    }
-
     folds() {
         if (this.currentGameTurn === this.turn) {
             this.socket.emit('pFolds', this.turn)
@@ -57,6 +75,15 @@ class Player {
 
     isABlind(arg) {
         this.chips -= arg;
+    }
+
+    dragsChips(eX, eY, chipAmount) {
+        if (eX > 40 && eX < 315) {
+            if (eY > 313 && eY < 455) {
+                this.betAmount += chipAmount;
+                this.setterBetAmount(this.betAmount);
+            }
+        }
     }
 
     winnerOfRound(chipsWon) {
