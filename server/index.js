@@ -25,7 +25,9 @@ var gameSettingsObj;
 
 const io = socketIO(server);
 io.on('connection', (socket) => {
-    console.log('client connected on websocket');
+    // console.log('client connected on websocket');
+
+
 
     let userBEI = {
         "guest": true,
@@ -35,6 +37,12 @@ io.on('connection', (socket) => {
         "accountUsername": null
     };
 
+    socket.emit('userConnects');
+
+    socket.on('confirmedUserConnects', (id) => {
+        userBEI.id = id;
+    })
+
     socket.on('userCreatesAccount', (createdAccount) => {
         possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: null, pendingAlerts: {}, friendRequests: []}
         socket.emit('userAccountValid');
@@ -43,7 +51,7 @@ io.on('connection', (socket) => {
     socket.on('userLogsIn', (loggedInAccount) => {
         if (possibleAccounts[loggedInAccount.username]) {
             if (loggedInAccount.password === possibleAccounts[loggedInAccount.username].password) {
-                possibleAccounts[loggedInAccount.username].idHolder = socket.id;
+                possibleAccounts[loggedInAccount.username].idHolder = userBEI.id;
                 userBEI.accountUsername = loggedInAccount.username
                 socket.emit('logInSuccessful')
             }
@@ -55,48 +63,61 @@ io.on('connection', (socket) => {
         socket.emit('sendingBackUserForProfilePage', possibleAccounts[userBEI.accountUsername])
     })
 
-    socket.on('newGame', (rS, ante, timer, progressiveBlinds, gameStyle) => {
-        var roomName = makeId(5);
+    socket.on('newGame', (rS, ante, timer, progressiveBlinds, gameStyle, bbMinRange, bbMaxRange, chipUnits) => {
+        var roomName
+        if (rS === 0 && ante === 0) {
+            console.log('hi');
+        } else if (rS != 0 && ante != 0) {
 
-        socket.join(roomName);
+            roomName = makeId(5);
 
-        userBEI['roomLabel'] = roomName;
+            socket.join(roomName);
 
-        gameSettingsObj = {};
+            userBEI['roomLabel'] = roomName;
 
-        gameSettingsObj['players'] = [];
+            gameSettingsObj = {};
 
-        gameSettingsObj['idHolder'] = roomName;
+            gameSettingsObj['players'] = [];
 
-        gameSettingsObj['pNickNames'] = [];
+            gameSettingsObj['idHolder'] = roomName;
 
-        gameSettingsObj['pChips'] = [];
+            gameSettingsObj['pNickNames'] = [];
 
-        gameSettingsObj['gameStarted'] = false;
+            gameSettingsObj['pChips'] = [];
 
-        gameSettingsObj['currentRoomSize'] = 1;
+            gameSettingsObj['gameStarted'] = false;
 
-        gameSettingsObj['gameStarted'] = false;
+            gameSettingsObj['currentRoomSize'] = 1;
 
-        gameSettingsObj['updatedPChips'] = [];
+            gameSettingsObj['gameStarted'] = false;
 
-        gameSettingsObj['desiredRoomSize'] = rS;
+            gameSettingsObj['updatedPChips'] = [];
 
-        gameSettingsObj['ante'] = ante;
+            gameSettingsObj['desiredRoomSize'] = rS;
 
-        gameSettingsObj['timer'] = timer;
+            gameSettingsObj['ante'] = ante;
 
-        gameSettingsObj['gameStyle'] = gameStyle
+            gameSettingsObj['timer'] = timer;
 
-        gameSettingsObj['progressiveBlinds'] = progressiveBlinds;
+            gameSettingsObj['gameStyle'] = gameStyle
 
-        gameSettingsObj['playerObjects'] = {};
+            gameSettingsObj['progressiveBlinds'] = progressiveBlinds;
 
-        globalState[roomName.toString()] = gameSettingsObj;
+            gameSettingsObj['minBuyIn'] = (bbMinRange * ante);
 
-        socket.emit('gameStateCreated')
+            gameSettingsObj['maxBuyIn'] = (bbMaxRange * ante);
 
-        console.log(roomName);
+            gameSettingsObj['chipUnits'] = chipUnits;
+
+            gameSettingsObj['playerObjects'] = {};
+
+            globalState[roomName.toString()] = gameSettingsObj;
+
+            socket.emit('gameStateCreated');
+
+        }
+
+        console.log(globalState);
 
     })
 
@@ -120,7 +141,7 @@ io.on('connection', (socket) => {
                 }
             }
 
-            // console.log(globalState[userBEI.roomLabel]);
+            console.log(globalState[userBEI.roomLabel]);
 
             io.to(userBEI.roomLabel).emit('sendingUserToGamePage', userBEI.roomLabel, globalState[userBEI.roomLabel]);
         }
