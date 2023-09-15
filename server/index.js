@@ -44,7 +44,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on('userCreatesAccount', (createdAccount) => {
-        possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: null, pendingAlerts: {}, friendRequests: []}
+        possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: userBEI.id, pendingAlerts: {}, friendRequests: [], friendsList: []}
         socket.emit('userAccountValid');
     })
 
@@ -53,10 +53,10 @@ io.on('connection', (socket) => {
             if (loggedInAccount.password === possibleAccounts[loggedInAccount.username].password) {
                 possibleAccounts[loggedInAccount.username].idHolder = userBEI.id;
                 userBEI.accountUsername = loggedInAccount.username
-                socket.emit('logInSuccessful')
+                socket.emit('logInSuccessful', possibleAccounts[loggedInAccount.username])
             }
         }
-        console.log(possibleAccounts)
+        // console.log(possibleAccounts)
     })
 
     socket.on('grabbingUserInfoForProfilePage', () => {
@@ -182,7 +182,20 @@ io.on('connection', (socket) => {
             possibleAccounts[friendUsername].friendRequests.push(userBEI.accountUsername);
             io.to(possibleAccounts[friendUsername].idHolder).emit('sendingFriendRequestToReciever', userBEI.accountUsername)
             socket.emit('friendRequestCleared');
+        } else {
+            socket.emit('friendRequestFailed');
         }
+    })
+
+    socket.on('requestAccepted', (type, username, index) => {
+        possibleAccounts[userBEI.accountUsername].friendsList.push(username)
+        possibleAccounts[username].friendsList.push(userBEI.accountUsername);
+        socket.emit('requestAcceptedConfirmed', username, index);
+        io.to(possibleAccounts[username].idHolder).emit('userAcceptedFriendRequest', userBEI.accountUsername);
+    })
+
+    socket.on('groupCreated', (groupName) => {
+        console.log(groupName)
     })
 
     socket.on('grabbingAnyPendingAlerts', () => {
