@@ -8,6 +8,8 @@ class User {
     playerGameObject;
     socket;
     gameId;
+    friendRequests = [];
+    friendsList = [];
 
     constructor(id, status, loggedIn, accountInfo, inGame, playerGameObject, socket) {
         this.id = id
@@ -18,9 +20,15 @@ class User {
         this.socket = socket
     }
 
+    addFriendToList(friendUsername) {
+        if (!this.friendsList.includes(friendUsername)) {
+            this.friendsList.push(friendUsername);
+        }
+    }
+
+
+
     
-
-
 }
 
 export default User;
