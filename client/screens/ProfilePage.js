@@ -13,13 +13,18 @@ const ProfilePage = ({route}) => {
     const navigation = useNavigation();
     let user = route.params.paramKey
 
-    const userSignsOut = () => {
-        
-        navigation.navigate('Home')
-    }
-
     user.socket.on('sendingFriendRequestToReciever', (sender) => {
-        user.friendRequests.push(sender)
+        if (!user.friendRequests.includes(sender)) {
+            user.friendRequests.push(sender);
+        }
+    })
+
+    user.socket.on('requestAcceptedConfirmed', (username, index) => {
+        user.friendRequests.splice(index, 1);
+    })
+
+    user.socket.on('userAcceptedFriendRequest', (username) => {
+        user.addFriendToList(username)
     })
 
     return (
@@ -32,24 +37,36 @@ const ProfilePage = ({route}) => {
                         <Button 
                             title='Proflie Info'
                             color='black'
+                            onPress={() => navigation.navigate('ProfileInfoPage', {
+                                paramKey: user
+                            })}
                         />
                     </View>
                     <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '40%', alignSelf: 'center', marginBottom: 50}}>
                         <Button 
                             title='Friends'
                             color='black'
+                            onPress={() => navigation.navigate('FriendsPage', {
+                                paramKey: user
+                            })}
                         />
                     </View>
                     <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '40%', alignSelf: 'center', marginBottom: 50}}>
                         <Button 
                             title='Groups'
                             color='black'
+                            onPress={() => navigation.navigate('GroupsPage', {
+                                paramKey: user
+                            })}
                         />
                     </View>
                     <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '40%', alignSelf: 'center', marginBottom: 50}}>
                         <Button 
                             title='Alerts'
                             color='black'
+                            onPress={() => navigation.navigate('AlertsPage', {
+                                paramKey: user
+                            })}
                         />
                     </View>
                     <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '40%', alignSelf: 'center', marginBottom: 50}}>

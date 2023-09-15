@@ -21,11 +21,14 @@ const LogIn = ({route}) => {
         user.socket.emit('userLogsIn', liUser)
     }
 
-    user.socket.on('logInSuccessful', () => {
+    user.socket.on('logInSuccessful', (userInfo) => {
         user.accountInfo = {
             username: liUser.username,
             password: liUser.password
         }
+
+        user.friendsList = userInfo.friendsList;
+
         user.loggedIn = true;
         navigation.navigate('Profile', {
             paramKey: user,

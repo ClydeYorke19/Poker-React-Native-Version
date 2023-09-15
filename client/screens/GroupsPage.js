@@ -1,28 +1,24 @@
-import { SafeAreaView, Button, StyleSheet, Text, View, TextInput, FlatList } from 'react-native';
+import { SafeAreaView, Button, StyleSheet, Text, View, LogBox } from 'react-native';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native'
 
-import GoBackButton from '../Components/GoBackButton';
-import AddingFriendsPage from './AddingFriendsPage';
-import FriendsListDisplay from '../Components/FriendsListDisplay';
+import CreatingGroupPage from './CreatingGroupPage';
 
-const FriendsPage = ({route}) => {
+const GroupsPage = ({route}) => {
+
+    LogBox.ignoreLogs([
+        'Non-serializable values were found in the navigation state',
+    ]);
+
     const navigation = useNavigation();
     let user = route.params.paramKey
 
-    let [addingFriendInit, setAddingFriendInit] = useState(false)
-    let friendsArr = [];
-
-    for (let i = 0; i < user.friendsList.length; i++) {
-        friendsArr.push(
-            <FriendsListDisplay key={i} username={user.friendsList[i]} />
-        )
-    }
+    let [creatingGroupInit, setCreatingGroupInit] = useState(false)
 
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>
-            <Text style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'papayawhip', fontSize: 30, width: '70%', height: '5.2%', textAlign: 'center', position: 'absolute', top: 55, alignSelf: 'center'}}>Friends</Text>
-            <View style={{display: addingFriendInit === false ? 'flex' : 'none', flex: 1, alignItems: 'center'}}>
+            <Text style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'papayawhip', fontSize: 30, width: '70%', height: '5.2%', textAlign: 'center', position: 'absolute', top: 55, alignSelf: 'center'}}>Groups</Text>
+            <View style={{flex: 1, display: creatingGroupInit === false ? 'flex' : 'none', alignItems: 'center'}}>
                 <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', position: 'absolute', top: 56, left: -170}}>
                     <Button 
                         title='<'
@@ -34,21 +30,22 @@ const FriendsPage = ({route}) => {
                 </View>
                 <View style={{backgroundColor:'lightgrey', position: 'absolute', top: 120, borderWidth: 3, borderRadius: 5, borderColor: 'black'}}>
                     <Button 
-                        title='Add Friends'
+                        title='Create Group'
                         color='black'
-                        onPress={() => setAddingFriendInit(true)}
+                        onPress={() => setCreatingGroupInit(true)}
                     />
                 </View>
                 <View style={{borderWidth: 3, borderRadius: 5, borderColor: 'black', position: 'absolute', top: 180, width: '95%', height: '75%', backgroundColor: 'papayawhip', flexDirection: 'row'}}>
-                    {friendsArr}
+                        
                 </View>
             </View>
-            <View style={{display: addingFriendInit === true ? 'flex' : 'none', height: '50%', width: '80%'}}>
-                <AddingFriendsPage userObj={user} setterAddingFriendInit={setAddingFriendInit} />
+
+            <View style={{flex: 1, display: creatingGroupInit === true ? 'flex' : 'none', width: '80%', marginTop: 160}}>
+                <CreatingGroupPage creatingGroupInit={creatingGroupInit} setCreatingGroup={setCreatingGroupInit} user={user} />
             </View>
         </View>
     )
 
 }
 
-export default FriendsPage
+export default GroupsPage
