@@ -14,9 +14,11 @@ const ProfilePage = ({route}) => {
     let user = route.params.paramKey
 
     user.socket.on('sendingFriendRequestToReciever', (sender) => {
-        if (!user.friendRequests.includes(sender)) {
-            user.friendRequests.push(sender);
-        }
+        user.addAlert('friend_request', sender)
+    })
+
+    user.socket.on('sendingGroupInvite', (sender, groupName) => {
+        user.addAlert('group_request', sender, groupName)
     })
 
     user.socket.on('requestAcceptedConfirmed', (username, index) => {
@@ -25,6 +27,10 @@ const ProfilePage = ({route}) => {
 
     user.socket.on('userAcceptedFriendRequest', (username) => {
         user.addFriendToList(username)
+    })
+
+    user.socket.on('groupInviteHasBeenAccepted', (groupInfo) => {
+        user.updateGroupInfo(groupInfo)
     })
 
     return (

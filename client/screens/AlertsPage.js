@@ -14,37 +14,55 @@ const AlertsPage = ({route}) => {
     let [pendingAlerts, setPendingAlerts] = useState(true);
 
 
-    const requestAccepted = (cb, username, index) => {
+    const requestAccepted = (cb, alertInfo, index) => {
         cb(false);
 
-        user.addFriendToList(username)
-
-        user.socket.emit('requestAccepted', 'fRQ', username, index);
+        if (alertInfo.type === 'friend_request') {
+            user.addFriendToList(alertInfo.sender)
+            user.socket.emit('requestAccepted', 'fRQ', alertInfo.sender, index);
+        } else if (alertInfo.type === 'group_request') {
+            user.socket.emit('groupInviteAccepted', alertInfo.sender, alertInfo.groupName, index)
+        }
     }
 
-    for (let i = 0; i < user.friendRequests.length; i++) {
+    for (let i = 0; i < user.alerts.length; i++) {
         let [t, setT] = useState(true)
-        alertsArr.push(
-            <View key={i} style={{width: '100%', height: '10%', borderBottomWidth: 3, borderRadius: 5, alignContent: 'center', justifyContent: 'center', marginBottom: 5, display: t === true ? 'flex' : 'none'}}>
-                <Text style={{textAlign: 'center', fontSize: 15, marginBottom: 10}}>{user.friendRequests[i]} has sent a friend request!</Text>
-                <View style={{flexDirection: 'row', alignContent: 'center', justifyContent: 'center'}}>
-                    <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}
-                        onPress={() => requestAccepted(setT, user.friendRequests[i], i)}
-                    >
-                        <Text style={{textAlign: 'center'}}>Accept</Text>
-                    </TouchableOpacity>
+        if (user.alerts[i].type === 'friend_request') {
+            alertsArr.push(
+                <View key={i} style={{width: '100%', height: '10%', borderBottomWidth: 3, borderRadius: 5, alignContent: 'center', justifyContent: 'center', marginBottom: 5, display: t === true ? 'flex' : 'none'}}>
+                    <Text style={{textAlign: 'center', fontSize: 15, marginBottom: 10}}>{user.alerts[i].sender} has sent a friend request!</Text>
+                    <View style={{flexDirection: 'row', alignContent: 'center', justifyContent: 'center'}}>
+                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}
+                            onPress={() => requestAccepted(setT, user.alerts[i], i)}
+                        >
+                            <Text style={{textAlign: 'center'}}>Accept</Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}>
-                        <Text style={{textAlign: 'center'}}>Decline</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}>
+                            <Text style={{textAlign: 'center'}}>Decline</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
-        )
+            )   
+        } else if (user.alerts[i].type === 'group_request') {
+            alertsArr.push(
+                <View key={i} style={{width: '100%', height: '10%', borderBottomWidth: 3, borderRadius: 5, alignContent: 'center', justifyContent: 'center', marginBottom: 5, display: t === true ? 'flex' : 'none'}}>
+                    <Text style={{textAlign: 'center', fontSize: 15, marginBottom: 10}}>{user.alerts[i].sender} has sent a group invite!</Text>
+                    <View style={{flexDirection: 'row', alignContent: 'center', justifyContent: 'center'}}>
+                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}
+                            onPress={() => requestAccepted(setT, user.alerts[i], i)}
+                        >
+                            <Text style={{textAlign: 'center'}}>Accept</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}>
+                            <Text style={{textAlign: 'center'}}>Decline</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )  
+        }
     }
-
-
-
-    
 
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>

@@ -1,8 +1,9 @@
-import { SafeAreaView, Button, StyleSheet, Text, View, LogBox } from 'react-native';
+import { SafeAreaView, Button, StyleSheet, Text, View, LogBox, TouchableOpacity } from 'react-native';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native'
 
 import CreatingGroupPage from './CreatingGroupPage';
+import SpecificGroupView from './SpecificGroupView';
 
 const GroupsPage = ({route}) => {
 
@@ -13,12 +14,32 @@ const GroupsPage = ({route}) => {
     const navigation = useNavigation();
     let user = route.params.paramKey
 
-    let [creatingGroupInit, setCreatingGroupInit] = useState(false)
+    let [creatingGroupInit, setCreatingGroupInit] = useState(false);
+    let [viewingGroup, setViewingGroup] = useState(false);
+    let [specificGroupName, setSpecificGroupName] = useState('');
+    let [specificGroupMembers, setSpecificGroupMembers] = useState('')
+
+    const setSpecificGroupView = (name) => {
+        setSpecificGroupName(name);
+        setViewingGroup(true);
+    }
+
+    let groupsArr = [];
+
+    for (let i = 0; i < user.groupNames.length; i++) {
+        groupsArr.push(
+            <TouchableOpacity key={i} style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', alignItems: 'center', minWidth: '20%', height: '10%', justifyContent: 'center', marginLeft: 10, marginRight: 10, marginTop: 10}}
+                onPress={() => setSpecificGroupView(user.groupNames[i])}
+            >
+                <Text>{user.groupNames[i]}</Text>
+            </TouchableOpacity>
+        )
+    }
 
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>
             <Text style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'papayawhip', fontSize: 30, width: '70%', height: '5.2%', textAlign: 'center', position: 'absolute', top: 55, alignSelf: 'center'}}>Groups</Text>
-            <View style={{flex: 1, display: creatingGroupInit === false ? 'flex' : 'none', alignItems: 'center'}}>
+            <View style={{flex: 1, display: creatingGroupInit === false && viewingGroup === false ? 'flex' : 'none', alignItems: 'center'}}>
                 <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', position: 'absolute', top: 56, left: -170}}>
                     <Button 
                         title='<'
@@ -35,14 +56,20 @@ const GroupsPage = ({route}) => {
                         onPress={() => setCreatingGroupInit(true)}
                     />
                 </View>
-                <View style={{borderWidth: 3, borderRadius: 5, borderColor: 'black', position: 'absolute', top: 180, width: '95%', height: '75%', backgroundColor: 'papayawhip', flexDirection: 'row'}}>
-                        
+                <View style={{borderWidth: 3, borderRadius: 5, borderColor: 'black', position: 'absolute', top: 180, width: '95%', height: '75%', backgroundColor: 'papayawhip', flexDirection: 'row', justifyContent: 'center'}}>
+                    {groupsArr}
                 </View>
             </View>
 
             <View style={{flex: 1, display: creatingGroupInit === true ? 'flex' : 'none', width: '80%', marginTop: 160}}>
                 <CreatingGroupPage creatingGroupInit={creatingGroupInit} setCreatingGroup={setCreatingGroupInit} user={user} />
             </View>
+
+            <View style={{flex: 1, display: viewingGroup === true ? 'flex' : 'none', width: '80%', marginTop: 120}}>    
+                <SpecificGroupView user={user} currentView={viewingGroup} setDisplayOpen={setViewingGroup} groupName={specificGroupName} />
+            </View>
+
+
         </View>
     )
 

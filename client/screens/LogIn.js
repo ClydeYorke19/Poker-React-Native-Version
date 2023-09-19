@@ -28,6 +28,14 @@ const LogIn = ({route}) => {
         }
 
         user.friendsList = userInfo.friendsList;
+        
+        for (var key in userInfo.groups) {
+            if (key) {
+                user.addGroup(userInfo.groups[key])
+            }
+        }
+
+        
 
         user.loggedIn = true;
         navigation.navigate('Profile', {
