@@ -17,6 +17,9 @@ import ProfileButton from './Components/ProfileButton';
 import AlertsPage from './Screens/AlertsPage';
 import GamePage from './Screens/GamePage';
 
+import ProfileInfoPage from './Screens/ProfileInfoPage';
+import GroupsPage from './Screens/GroupsPage';
+
 
 const Stack = createNativeStackNavigator()
 
@@ -35,10 +38,12 @@ function App() {
       <Stack.Screen name="JoinGame" component={JoinGame} />
       <Stack.Screen name="PlayerInGameDisplays" component={PlayerInGameDisplays} />
       <Stack.Screen name="FriendsPage" component={FriendsPage} />
-      <Stack.Screen name="AddingFriendsPage" component={AddingFriendsPage} />
+      {/* <Stack.Screen name="AddingFriendsPage" component={AddingFriendsPage} /> */}
       <Stack.Screen name="AlertsPage" component={AlertsPage}/>
       <Stack.Screen name="ProfileButton" component={ProfileButton}/>
       <Stack.Screen name="GamePage" component={GamePage}/>
+      <Stack.Screen name="ProfileInfoPage" component={ProfileInfoPage}/>
+      <Stack.Screen name="GroupsPage" component={GroupsPage}/>
 
     </Stack.Navigator>
   )
