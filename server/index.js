@@ -44,7 +44,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on('userCreatesAccount', (createdAccount) => {
-        possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: userBEI.id, pendingAlerts: {}, friendRequests: [], friendsList: []}
+        possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: userBEI.id, pendingAlerts: [], friendRequests: [], friendsList: [], groups: {}, groupNames: []}
         socket.emit('userAccountValid');
     })
 
@@ -178,7 +178,7 @@ io.on('connection', (socket) => {
 
     socket.on('userSendsFriendRequest', (friendUsername) => {
         if (possibleAccounts[friendUsername]) {
-            possibleAccounts[friendUsername].pendingAlerts[userBEI.accountUsername] = {'type': 'FriendRequest', 'sender': userBEI.accountUsername, 'id': userBEI.accountUsername + '_FR'}
+            possibleAccounts[friendUsername].pendingAlerts.push({'type': 'friend_request', 'sender': userBEI.accountUsername});
             possibleAccounts[friendUsername].friendRequests.push(userBEI.accountUsername);
             io.to(possibleAccounts[friendUsername].idHolder).emit('sendingFriendRequestToReciever', userBEI.accountUsername)
             socket.emit('friendRequestCleared');
@@ -195,7 +195,32 @@ io.on('connection', (socket) => {
     })
 
     socket.on('groupCreated', (groupName) => {
-        console.log(groupName)
+        if (possibleAccounts[userBEI.accountUsername]) {
+            possibleAccounts[userBEI.accountUsername].groups[groupName] = {'host': userBEI.accountUsername, members: [userBEI.accountUsername], name: groupName, totalMembers: 1}
+            possibleAccounts[userBEI.accountUsername].groupNames.push(groupName);
+            socket.emit('groupCreationCleared', possibleAccounts[userBEI.accountUsername].groups[groupName]); 
+        }
+    })
+
+    socket.on('GroupInviteSent', (username, groupName) => {
+        if (possibleAccounts[username]) {
+            possibleAccounts[username].pendingAlerts.push({'type': 'group_invite', 'sender': userBEI.accountUsername, 'groupName': groupName})
+            io.to(possibleAccounts[username].idHolder).emit('sendingGroupInvite', userBEI.accountUsername, groupName);
+            socket.emit('GroupInviteConfirmed');
+            
+        } else {
+            socket.emit('GroupInviteFailed');
+        }
+    })
+
+    socket.on('groupInviteAccepted', (sender, groupName) => {
+        possibleAccounts[sender].groups[groupName].members.push(userBEI.accountUsername);
+        possibleAccounts[sender].groups[groupName].totalMembers++;
+        possibleAccounts[userBEI.accountUsername].groups[groupName] = possibleAccounts[sender].groups[groupName];
+
+        io.to(possibleAccounts[sender].idHolder).emit('groupInviteHasBeenAccepted', possibleAccounts[userBEI.accountUsername].groups[groupName])
+        socket.emit('sendingGroupInfo', possibleAccounts[userBEI.accountUsername].groups[groupName])
+
     })
 
     socket.on('grabbingAnyPendingAlerts', () => {
