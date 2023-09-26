@@ -1,40 +1,58 @@
-import { SafeAreaView, Button, StyleSheet, Text, View, LogBox, TouchableOpacity } from 'react-native';
+import { Button, Text, View, LogBox, TouchableOpacity } from 'react-native';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native'
-
 import CreatingGroupPage from './CreatingGroupPage';
 import SpecificGroupView from './SpecificGroupView';
 
 const GroupsPage = ({route}) => {
 
-    LogBox.ignoreLogs([
-        'Non-serializable values were found in the navigation state',
-    ]);
+    // Variables //
 
     const navigation = useNavigation();
     let user = route.params.paramKey
-
     let [creatingGroupInit, setCreatingGroupInit] = useState(false);
     let [viewingGroup, setViewingGroup] = useState(false);
     let [specificGroupName, setSpecificGroupName] = useState('');
     let [specificGroupMembers, setSpecificGroupMembers] = useState('')
+
+    let groupsArr = [];
+
+    //////////////////////////////////////////////////////////////////
+
+    // Functions //
+
+    LogBox.ignoreLogs([
+        'Non-serializable values were found in the navigation state',
+    ]);
 
     const setSpecificGroupView = (name) => {
         setSpecificGroupName(name);
         setViewingGroup(true);
     }
 
-    let groupsArr = [];
+    //////////////////////////////////////////////////////////////////
+
+    // User Socket On's //
+
+    user.socket.on('groupInviteHasBeenAccepted', (groupInfo) => {
+        user.updateGroupInfo(groupInfo);
+    })
+
+    //////////////////////////////////////////////////////////////////
+
+    // Group Page Elements //
 
     for (let i = 0; i < user.groupNames.length; i++) {
         groupsArr.push(
-            <TouchableOpacity key={i} style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', alignItems: 'center', minWidth: '20%', height: '10%', justifyContent: 'center', marginLeft: 10, marginRight: 10, marginTop: 10}}
+            <TouchableOpacity key={i} style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', alignItems: 'center', maxWidth: '30%', height: '10%', justifyContent: 'center', marginLeft: 10, marginRight: 10, marginTop: 10}}
                 onPress={() => setSpecificGroupView(user.groupNames[i])}
             >
-                <Text>{user.groupNames[i]}</Text>
+                <Text style={{marginRight: 10, marginLeft: 10, textAlign: 'center'}}>{user.groupNames[i]}</Text>
             </TouchableOpacity>
         )
     }
+
+    //////////////////////////////////////////////////////////////////
 
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>
@@ -56,9 +74,14 @@ const GroupsPage = ({route}) => {
                         onPress={() => setCreatingGroupInit(true)}
                     />
                 </View>
-                <View style={{borderWidth: 3, borderRadius: 5, borderColor: 'black', position: 'absolute', top: 180, width: '95%', height: '75%', backgroundColor: 'papayawhip', flexDirection: 'row', justifyContent: 'center'}}>
+
+
+                <View style={{borderWidth: 3, borderRadius: 5, borderColor: 'black', position: 'absolute', top: 180, width: '95%', height: '75%', backgroundColor: 'papayawhip', flexDirection: 'row', flexWrap: 'wrap'}}>
+                   
                     {groupsArr}
+
                 </View>
+
             </View>
 
             <View style={{flex: 1, display: creatingGroupInit === true ? 'flex' : 'none', width: '80%', marginTop: 160}}>
@@ -72,7 +95,6 @@ const GroupsPage = ({route}) => {
 
         </View>
     )
-
 }
 
 export default GroupsPage

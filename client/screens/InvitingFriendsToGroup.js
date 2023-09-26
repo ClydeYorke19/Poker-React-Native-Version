@@ -1,8 +1,9 @@
-import { SafeAreaView, Button, StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { Button, StyleSheet, Text, View, TextInput } from 'react-native';
 import React, { useState } from 'react';
-import { useNavigation } from '@react-navigation/native'
 
 const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
+
+    // Variables //
 
     let [responseText, setResponseText] = useState('');
     let [readyResponse, setReadyResponse] = useState(false);
@@ -11,17 +12,9 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
     let friendUsernameHolder;
     let submittedFriendUsername = null;
 
-    user.socket.on('GroupInviteConfirmed', () => {
-        setResponseText('Group Invite Has Been Sent!')
-        setReadyResponse(true)
-        setResponseType(200)
-    })
+    //////////////////////////////////////////////////////////////////
 
-    user.socket.on('GroupInviteFailed', () => {
-        setResponseText('Group Invite Failed. Please Try Again.')
-        setReadyResponse(true)
-        setResponseType(400)
-    })
+    // Functions //
 
     const xOutOfResponse = () => {
         if (responseType === 200) {
@@ -30,6 +23,24 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
             setReadyResponse(false);
         }
     }
+
+    //////////////////////////////////////////////////////////////////
+
+    // User Socket On's //
+
+    user.socket.on('groupInviteConfirmed', () => {
+        setResponseText('Group Invite Has Been Sent!')
+        setReadyResponse(true)
+        setResponseType(200)
+    })
+
+    user.socket.on('groupInviteFailed', () => {
+        setResponseText('Group Invite Failed. Please Try Again.')
+        setReadyResponse(true)
+        setResponseType(400)
+    })
+
+    //////////////////////////////////////////////////////////////////
 
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: 'papayawhip'}}>
@@ -51,13 +62,13 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
                     <Button 
                         title='Send Invite'
                         color='black'
-                        onPress={() => user.socket.emit('GroupInviteSent', submittedFriendUsername, groupName)}
+                        onPress={() => user.socket.emit('groupInviteSent', submittedFriendUsername, groupName)}
                     />
                 </View>
             </View>
 
-            <View style={{display: readyResponse === true ? 'flex' : 'none'}}>
-                <View style={{borderBottomWidth: 3, backgroundColor: 'lightgrey', alignSelf: 'center', position: 'absolute', width: '100%'}}>
+            <View style={{display: readyResponse === true ? 'flex' : 'none', justifyContent: 'center', alignContent: 'center'}}>
+                <View style={{borderBottomWidth: 3, backgroundColor: 'lightgrey', alignSelf: 'center', position: 'absolute', top: -198, width: '100%'}}>
                     <Button 
                         title='X'
                         color='black'
@@ -68,7 +79,6 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
             </View>
         </View>
     )
-
 }
 
 export default InvitingFriendsToGroup

@@ -1,29 +1,48 @@
-import { SafeAreaView, Button, StyleSheet, Text, View, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { Button, Text, View, TouchableOpacity } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native'
 
-import GoBackButton from '../Components/GoBackButton';
-
 const AlertsPage = ({route}) => {
+
+    // Variables //
 
     const navigation = useNavigation();
     let user = route.params.paramKey;
 
     let alertsArr = [];
-    let [finalAlerts, setFinalAlerts] = useState(user.friendRequests);
-    let [pendingAlerts, setPendingAlerts] = useState(true);
+    let [pendingAlerts, setPendingAlerts] = useState();
 
+    //////////////////////////////////////////////////////////////////
+
+    // Functions //
+
+    useEffect(() => {
+        if (user.alerts.length === 0) {
+            setPendingAlerts(false)
+        } else {
+            setPendingAlerts(true)
+        }
+    })
 
     const requestAccepted = (cb, alertInfo, index) => {
         cb(false);
 
         if (alertInfo.type === 'friend_request') {
             user.addFriendToList(alertInfo.sender)
-            user.socket.emit('requestAccepted', 'fRQ', alertInfo.sender, index);
+            user.socket.emit('friendRequestAccepted', alertInfo, index);
         } else if (alertInfo.type === 'group_request') {
-            user.socket.emit('groupInviteAccepted', alertInfo.sender, alertInfo.groupName, index)
+            user.socket.emit('groupRequestAccepted', alertInfo, index)
         }
     }
+
+    const requestDeclined = (cb, alertInfo, index) => {
+        cb(false)
+        user.socket.emit('requestDeclined', alertInfo, index);
+    }
+
+    //////////////////////////////////////////////////////////////////
+
+    // Alert Elements //
 
     for (let i = 0; i < user.alerts.length; i++) {
         let [t, setT] = useState(true)
@@ -38,7 +57,9 @@ const AlertsPage = ({route}) => {
                             <Text style={{textAlign: 'center'}}>Accept</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}>
+                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}
+                            onPress={() => requestDeclined(setT, user.alerts[i], i)}
+                        >
                             <Text style={{textAlign: 'center'}}>Decline</Text>
                         </TouchableOpacity>
                     </View>
@@ -55,7 +76,9 @@ const AlertsPage = ({route}) => {
                             <Text style={{textAlign: 'center'}}>Accept</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}>
+                        <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', width: '20%'}}
+                            onPress={() => requestDeclined(setT, user.alerts[i], i)}
+                        >
                             <Text style={{textAlign: 'center'}}>Decline</Text>
                         </TouchableOpacity>
                     </View>
@@ -63,6 +86,8 @@ const AlertsPage = ({route}) => {
             )  
         }
     }
+
+    //////////////////////////////////////////////////////////////////
 
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>

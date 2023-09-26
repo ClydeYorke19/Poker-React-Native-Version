@@ -1,23 +1,30 @@
-import { SafeAreaView, Button, StyleSheet, Text, View, TextInput, FlatList } from 'react-native';
+import { Button, Text, View } from 'react-native';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native'
-
-import GoBackButton from '../Components/GoBackButton';
 import AddingFriendsPage from './AddingFriendsPage';
 import FriendsListDisplay from '../Components/FriendsListDisplay';
 
 const FriendsPage = ({route}) => {
+
+    // Variables //
+
     const navigation = useNavigation();
     let user = route.params.paramKey
 
     let [addingFriendInit, setAddingFriendInit] = useState(false)
     let friendsArr = [];
 
+    //////////////////////////////////////////////////////////////////
+
+    // Friends List Elements //
+
     for (let i = 0; i < user.friendsList.length; i++) {
         friendsArr.push(
             <FriendsListDisplay key={i} username={user.friendsList[i]} />
         )
     }
+
+    //////////////////////////////////////////////////////////////////
 
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>
@@ -39,7 +46,7 @@ const FriendsPage = ({route}) => {
                         onPress={() => setAddingFriendInit(true)}
                     />
                 </View>
-                <View style={{borderWidth: 3, borderRadius: 5, borderColor: 'black', position: 'absolute', top: 180, width: '95%', height: '75%', backgroundColor: 'papayawhip', flexDirection: 'row'}}>
+                <View style={{borderWidth: 3, borderRadius: 5, borderColor: 'black', position: 'absolute', top: 180, width: '95%', height: '75%', backgroundColor: 'papayawhip', flexDirection: 'row', flexWrap: 'wrap'}}>
                     {friendsArr}
                 </View>
             </View>
@@ -48,7 +55,6 @@ const FriendsPage = ({route}) => {
             </View>
         </View>
     )
-
 }
 
 export default FriendsPage
