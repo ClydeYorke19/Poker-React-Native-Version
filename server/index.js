@@ -24,10 +24,8 @@ var globalState = {};
 var gameSettingsObj;
 
 const io = socketIO(server);
+
 io.on('connection', (socket) => {
-    // console.log('client connected on websocket');
-
-
 
     let userBEI = {
         "guest": true,
@@ -37,15 +35,27 @@ io.on('connection', (socket) => {
         "accountUsername": null
     };
 
+    //////////////////////////////////////////////////////////////////
+
+    ////// USER CONNECTING LISTENERS ////// 
+
     socket.emit('userConnects');
 
     socket.on('confirmedUserConnects', (id) => {
         userBEI.id = id;
     })
 
+    //////////////////////////////////////////////////////////////////
+
+    ////// USER CREATE ACCOUNT / LOG In LISTENERS //////
+
     socket.on('userCreatesAccount', (createdAccount) => {
-        possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: userBEI.id, pendingAlerts: [], friendRequests: [], friendsList: [], groups: {}, groupNames: []}
-        socket.emit('userAccountValid');
+        if (!possibleAccounts[createdAccount.chosenUN]) {
+            possibleAccounts[createdAccount.chosenUN] = {username: createdAccount.chosenUN, password: createdAccount.chosenP, idHolder: userBEI.id, pendingAlerts: [], friendRequests: [], friendsList: [], groups: {}, groupNames: []}
+            socket.emit('userAccountValid');
+        } else {
+            socket.emit('userAccountInvalid')
+        }
     })
 
     socket.on('userLogsIn', (loggedInAccount) => {
@@ -54,127 +64,19 @@ io.on('connection', (socket) => {
                 possibleAccounts[loggedInAccount.username].idHolder = userBEI.id;
                 userBEI.accountUsername = loggedInAccount.username
                 socket.emit('logInSuccessful', possibleAccounts[loggedInAccount.username])
+            } else {
+                socket.emit('logInFailed')
             }
+        } else {
+            socket.emit('logInFailed')
         }
-        // console.log(possibleAccounts)
-    })
-
-    socket.on('grabbingUserInfoForProfilePage', () => {
-        socket.emit('sendingBackUserForProfilePage', possibleAccounts[userBEI.accountUsername])
-    })
-
-    socket.on('newGame', (rS, ante, timer, progressiveBlinds, gameStyle, bbMinRange, bbMaxRange, chipUnits) => {
-        var roomName
-        if (rS === 0 && ante === 0) {
-            console.log('hi');
-        } else if (rS != 0 && ante != 0) {
-
-            roomName = makeId(5);
-
-            socket.join(roomName);
-
-            userBEI['roomLabel'] = roomName;
-
-            gameSettingsObj = {};
-
-            gameSettingsObj['players'] = [];
-
-            gameSettingsObj['idHolder'] = roomName;
-
-            gameSettingsObj['pNickNames'] = [];
-
-            gameSettingsObj['pChips'] = [];
-
-            gameSettingsObj['gameStarted'] = false;
-
-            gameSettingsObj['currentRoomSize'] = 1;
-
-            gameSettingsObj['gameStarted'] = false;
-
-            gameSettingsObj['updatedPChips'] = [];
-
-            gameSettingsObj['desiredRoomSize'] = rS;
-
-            gameSettingsObj['ante'] = ante;
-
-            gameSettingsObj['timer'] = timer;
-
-            gameSettingsObj['gameStyle'] = gameStyle
-
-            gameSettingsObj['progressiveBlinds'] = progressiveBlinds;
-
-            gameSettingsObj['minBuyIn'] = (bbMinRange * ante);
-
-            gameSettingsObj['maxBuyIn'] = (bbMaxRange * ante);
-
-            gameSettingsObj['chipUnits'] = chipUnits;
-
-            gameSettingsObj['playerObjects'] = {};
-
-            globalState[roomName.toString()] = gameSettingsObj;
-
-            socket.emit('gameStateCreated');
-
-        }
-
-        console.log(globalState);
-
-    })
-
-    socket.on('playerEntersGameCode', (gameCode) => {
-        if (globalState[gameCode]) {
-            userBEI.roomLabel = gameCode;
-            socket.join(gameCode)
-            socket.emit('userIsClearedToJoinGame')
-        }
-    })
-
-    socket.on('playerSubmitsInGameDisplayInfo', (displayObj) => {
-        if (globalState[userBEI.roomLabel]) {
-            globalState[userBEI.roomLabel].pNickNames.push(displayObj.enteredDisplayName)
-            globalState[userBEI.roomLabel].pChips.push(Number(displayObj.enteredDisplayBuyIn))
-            globalState[userBEI.roomLabel].players.push(userBEI.id)
-
-            for (let i = 0; i < globalState[userBEI.roomLabel].pNickNames.length; i++) {
-                if (displayObj.enteredDisplayName === globalState[userBEI.roomLabel].pNickNames[i]) {
-                    globalState[userBEI.roomLabel].playerObjects[i + 1] = {'displayName': globalState[userBEI.roomLabel].pNickNames[i], 'chipCount': globalState[userBEI.roomLabel].pChips[i], 'inGameTurn': i + 1}
-                }
-            }
-
-            console.log(globalState[userBEI.roomLabel]);
-
-            io.to(userBEI.roomLabel).emit('sendingUserToGamePage', userBEI.roomLabel, globalState[userBEI.roomLabel]);
-        }
-    })
-
-    socket.on('playerChecks', () => {
-        console.log('player checks');
-        io.to(userBEI.roomLabel).emit('sendingBackPlayerCheck')
-    })
-
-    socket.on('bounds', (bounds) => {
-        console.log(bounds)
-    })
-
-    socket.on('initGameStarted', (info, info2) => {
-        io.to(userBEI.roomLabel).emit('sendingBackGameStart', info)
-    })
-
-    socket.on('currentRoundHasJustEnded', () => {
-        // io.to(userBEI.roomLabel).emit('sendingBackSubmittedWinnerOfRound');
-        io.to(userBEI.roomLabel).emit('signlaingEndOfCurrentRound');
-    })
-
-    socket.on('roundIsOver', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackSubmittedWinnerOfRound');
-    })
-
-    socket.on('nextRoundInitiated', () => {
-        io.to(userBEI.roomLabel).emit('displayingNextRoundInitiation');
-    })
-
+    }) 
 
     //////////////////////////////////////////////////////////////////
+
+    ////// SOCIALS LISTENERS //////
+
+    // Friend Listeners //
 
     socket.on('userSendsFriendRequest', (friendUsername) => {
         if (possibleAccounts[friendUsername]) {
@@ -187,50 +89,123 @@ io.on('connection', (socket) => {
         }
     })
 
-    socket.on('requestAccepted', (type, username, index) => {
-        possibleAccounts[userBEI.accountUsername].friendsList.push(username)
-        possibleAccounts[username].friendsList.push(userBEI.accountUsername);
-        socket.emit('requestAcceptedConfirmed', username, index);
-        io.to(possibleAccounts[username].idHolder).emit('userAcceptedFriendRequest', userBEI.accountUsername);
+    socket.on('friendRequestAccepted', (alertInfo, index) => {
+        possibleAccounts[userBEI.accountUsername].friendsList.push(alertInfo.sender)
+        possibleAccounts[alertInfo.sender].friendsList.push(userBEI.accountUsername);
+        socket.emit('friendRequestAcceptedConfirmed', alertInfo, index);
+        io.to(possibleAccounts[alertInfo.sender].idHolder).emit('userAcceptedFriendRequest', userBEI.accountUsername);
     })
+
+    // Groups Listeners //
 
     socket.on('groupCreated', (groupName) => {
-        if (possibleAccounts[userBEI.accountUsername]) {
-            possibleAccounts[userBEI.accountUsername].groups[groupName] = {'host': userBEI.accountUsername, members: [userBEI.accountUsername], name: groupName, totalMembers: 1}
-            possibleAccounts[userBEI.accountUsername].groupNames.push(groupName);
-            socket.emit('groupCreationCleared', possibleAccounts[userBEI.accountUsername].groups[groupName]); 
-        }
+        possibleAccounts[userBEI.accountUsername].groups[groupName] = {'host': userBEI.accountUsername, members: [userBEI.accountUsername], name: groupName, totalMembers: 1}
+        possibleAccounts[userBEI.accountUsername].groupNames.push(groupName);
+        socket.emit('groupCreationCleared', possibleAccounts[userBEI.accountUsername].groups[groupName]); 
     })
 
-    socket.on('GroupInviteSent', (username, groupName) => {
+    socket.on('groupInviteSent', (username, groupName) => {
         if (possibleAccounts[username]) {
             possibleAccounts[username].pendingAlerts.push({'type': 'group_invite', 'sender': userBEI.accountUsername, 'groupName': groupName})
+
             io.to(possibleAccounts[username].idHolder).emit('sendingGroupInvite', userBEI.accountUsername, groupName);
-            socket.emit('GroupInviteConfirmed');
+            socket.emit('groupInviteConfirmed');
             
         } else {
-            socket.emit('GroupInviteFailed');
+            socket.emit('groupInviteFailed');
         }
     })
 
-    socket.on('groupInviteAccepted', (sender, groupName) => {
-        possibleAccounts[sender].groups[groupName].members.push(userBEI.accountUsername);
-        possibleAccounts[sender].groups[groupName].totalMembers++;
-        possibleAccounts[userBEI.accountUsername].groups[groupName] = possibleAccounts[sender].groups[groupName];
+    socket.on('groupRequestAccepted', (alertInfo, index) => {
+        possibleAccounts[alertInfo.sender].groups[alertInfo.groupName].members.push(userBEI.accountUsername);
+        possibleAccounts[alertInfo.sender].groups[alertInfo.groupName].totalMembers++;
+        possibleAccounts[userBEI.accountUsername].groups[alertInfo.groupName] = possibleAccounts[alertInfo.sender].groups[alertInfo.groupName];
 
-        io.to(possibleAccounts[sender].idHolder).emit('groupInviteHasBeenAccepted', possibleAccounts[userBEI.accountUsername].groups[groupName])
-        socket.emit('sendingGroupInfo', possibleAccounts[userBEI.accountUsername].groups[groupName])
+        io.to(possibleAccounts[alertInfo.sender].idHolder).emit('groupInviteHasBeenAccepted', possibleAccounts[userBEI.accountUsername].groups[alertInfo.groupName])
+        socket.emit('sendingGroupInfoAfterInviteAccepted', possibleAccounts[userBEI.accountUsername].groups[alertInfo.groupName], alertInfo, index)
 
     })
 
-    socket.on('grabbingAnyPendingAlerts', () => {
-        socket.emit('sendingBackAnyPendingAlerts', possibleAccounts[userBEI.accountUsername].friendRequests)
+    socket.on('requestDeclined', (alertInfo, index) => {
+        socket.emit('sendingBackRequestDecline', alertInfo, index)
     })
 
     //////////////////////////////////////////////////////////////////
 
-    socket.on('currentRoundHasEnded', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackCurrentRoundEnder');
+    ////// GAME LISTENERS //////
+
+    // Pre Game Listeners //
+
+    socket.on('newGame', (rS, ante, timer, progressiveBlinds, gameStyle, bbMinRange, bbMaxRange, chipUnits) => {
+        var roomName
+        if (rS === 0 && ante === 0) {
+            console.log('hi');
+        } else if (rS != 0 && ante != 0) {
+
+            roomName = makeId(5);
+
+            userBEI['roomLabel'] = roomName;
+
+            socket.join(roomName);
+
+            gameSettingsObj = {
+                active: true,
+                players: [],
+                idHolder: roomName,
+                pNickNames: [],
+                pChips: [],
+                gameStarted: false,
+                updatedPChips: [],
+                desiredRoomSize: rS,
+                ante: ante,
+                timer: timer,
+                gameStyle: gameStyle,
+                progressiveBlinds: progressiveBlinds,
+                minBuyIn: (bbMinRange * ante),
+                maxBuyIn: (bbMaxRange * ante),
+                chipUnits: chipUnits,
+            };
+
+            globalState[roomName.toString()] = gameSettingsObj;
+
+            socket.emit('gameStateCreated');
+
+        }
+    })
+
+    socket.on('playerEntersGameCode', (gameCode) => {
+        if (globalState[gameCode]) {
+            userBEI.roomLabel = gameCode;
+            socket.join(gameCode)
+            socket.emit('userIsClearedToJoinGame')
+        } else {
+            socket.emit('gameCodeDoesNotExist');
+        }
+    })
+
+    socket.on('playerSubmitsInGameDisplayInfo', (displayObj) => {
+        if (globalState[userBEI.roomLabel]) {
+            globalState[userBEI.roomLabel].pNickNames.push(displayObj.enteredDisplayName)
+            globalState[userBEI.roomLabel].pChips.push(Number(displayObj.enteredDisplayBuyIn))
+            globalState[userBEI.roomLabel].players.push(userBEI.id)
+
+            io.to(userBEI.roomLabel).emit('sendingUserToGamePage', userBEI.roomLabel, globalState[userBEI.roomLabel]);
+        }
+    })
+
+    socket.on('initGameStarted', (info, info2) => {
+        io.to(userBEI.roomLabel).emit('sendingBackGameStart', info)
+    })    
+
+    // In Game Listeners //
+
+    socket.on('winnerHasBeenChosen', (winner) => {
+        console.log(winner);
+        io.to(userBEI.roomLabel).emit('sendingBackWinnerOfRound', winner)
+    })
+
+    socket.on('initNextRound', () => {
+        io.to(userBEI.roomLabel).emit('sendingBackInitNextRound');
     })
 
     // PLAYER IN GAME LISTENERS //
@@ -251,89 +226,20 @@ io.on('connection', (socket) => {
         io.to(userBEI.roomLabel).emit('playerChecks', turn)
     })
 
-    socket.on('WinnerHasBeenChosen', (winner) => {
-        console.log(winner);
-        io.to(userBEI.roomLabel).emit('sendingBackWinnerOfRound', winner)
-    })
-
-    socket.on('initNextRound', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackInitNextRound');
-    })
-
-    ///////// P1 /////////
-    socket.on('p1SubmitsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP1Bet', chips)
-    })
-
-    socket.on('p1Checks', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP1Check');
-    })
-
-    socket.on('p1CallsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP1CalledBet', chips)
-    })
-
-    socket.on('p1Folds', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP1Fold');
-    })
-
-    ///////// P2 /////////
-    socket.on('p2SubmitsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP2Bet', chips)
-    })
-
-    socket.on('p2Checks', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP2Check');
-    })
-
-    socket.on('p2CallsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP2CalledBet', chips)
-    })
-
-    socket.on('p2Folds', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP2Fold');
-    })
-
-    ///////// P3 /////////
-    socket.on('p3SubmitsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP3Bet', chips)
-    })
-
-    socket.on('p3Checks', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP3Check');
-    })
-
-    socket.on('p3CallsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP3CalledBet', chips)
-    })
-
-    socket.on('p3Folds', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP3Fold');
-    })
-
-    ///////// P4 /////////
-    socket.on('p4SubmitsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP4Bet', chips)
-    })
-
-    socket.on('p4Checks', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP4Check');
-    })
-
-    socket.on('p4CallsBet', (chips) => {
-        io.to(userBEI.roomLabel).emit('sendingBackP4CalledBet', chips)
-    })
-
-    socket.on('p4Folds', () => {
-        io.to(userBEI.roomLabel).emit('sendingBackP4Fold');
-    })
     
 
-    // setInterval(() => {
-    //     io.emit('ping', { data: (new Date()) / 1 });
-    // }, 1000);
 });
 
 
 
 server.listen(PORT, () => console.log(`Server Running on Port: http://localhost:${PORT}`));
+
+
+
+
+
+
+
+// setInterval(() => {
+//     io.emit('ping', { data: (new Date()) / 1 });
+// }, 1000);
