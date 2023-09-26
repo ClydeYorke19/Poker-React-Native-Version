@@ -1,7 +1,5 @@
-import { SafeAreaView, Button, StyleSheet, Text, View, TouchableOpacity, TextInput } from 'react-native';
+import { Button, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import React, { useState } from 'react';
-
-import { PlayerGameView } from './PlayerViewModel';
 import GameModel from './GameModel';
 import settingPlayerPositions from './PlayerPositionsModel';
 
@@ -9,13 +7,14 @@ var gModel;
 
 export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, playerView, setPlayerView}) => {
 
+    // Variables //
+
     const roomSize = rS;
     const gameState = gameObj;
 
     let PlayerBorders = [];
     let PlayersDisplayName;
     let PlayersDisplayChips;
-    // let inGamePlayerPositions = [];
     let inGamePlayerPositions = settingPlayerPositions(roomSize);
     let BigBlindSelection = [];
     let WinnerSelection = [];
@@ -24,7 +23,8 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
     let [roundTransition, setRoundTransition] = useState(false);
     let [selectedWinner, setSelectedWinner] = useState(0);
     let [winnerChosen, setWinnerChosen] = useState(false);
-    let [promptedForNextRound, setPromptedForNextRound] = useState(false);
+
+    let [initLeaveGame, setInitLeaveGame] = useState(false);
 
     let [activeBBSelect, setActiveBBSelect] = useState(0);
     let [toggleBBSelect, setToggleBBSelect] = useState(false)
@@ -33,9 +33,11 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
 
     let [activePot, setActivePot] = useState();
     let [activeRound, setActiveRound] = useState();
-    let [roundNumber, setRoundNumber] = useState(0)
     let [gameTurn, setGameTurn] = useState();
-    let [rTransition, setRTransition] = useState(false);
+
+    //////////////////////////////////////////////////////////////////
+
+    // Functions //
 
     const initGameStart = () => {
         user.socket.emit('initGameStarted', activeBBSelect, activeSBSelect);
@@ -43,7 +45,7 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
     }
 
     const WinnerSubmitted = () => {
-        user.socket.emit('WinnerHasBeenChosen', selectedWinner)
+        user.socket.emit('winnerHasBeenChosen', selectedWinner)
         setWinnerChosen(true)
     }
 
@@ -64,6 +66,10 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         }
     }
 
+    //////////////////////////////////////////////////////////////////
+
+    // User Socket On's //
+
     user.socket.on('sendingBackGameStart', (info) => {
         gModel = new GameModel(gameState.desiredRoomSize, 0, 0, 0, 0, [], info, 0, 0, Number(gameState.ante), [], setActiveRound, setRoundTransition, gameState.pNickNames, gameState.pChips)
         
@@ -76,6 +82,14 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         setActiveRound(gModel.currentRoundName)
 
         user.playerGameObj.currentGameTurn = gModel.currentTurn;
+
+        if (gModel.bigBlind === user.playerGameObj.turn) {
+            gModel.setPlayerBorders(gameState, (user.playerGameObj.chips - gModel.ante), user.playerGameObj.turn);
+        }
+
+        if (gModel.smallBlind === user.playerGameObj.turn) {
+            gModel.setPlayerBorders(gameState, (user.playerGameObj.chips - (gModel.ante / 2)), user.playerGameObj.turn)
+        }
 
     })
 
@@ -119,8 +133,6 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
     })
 
     user.socket.on('playerCallsBet', (turn, callAmount, playerChips) => {
-        // user.playerGameObj.displayCall(gModel.lastBet);
-
         gModel.pot += callAmount
         activePot += callAmount;
         setActivePot(activePot);
@@ -160,14 +172,14 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         user.playerGameObj.currentGameTurn = gModel.currentTurn;
     })    
 
+    //////////////////////////////////////////////////////////////////
+
+    // In Game Elements //
+
     const PokerTable = (
         <View style={{borderWidth: 4, borderRadius: '70%', borderColor: 'black', width: 175, height: 500, backgroundColor:'papayawhip', alignSelf: 'center', justifyContent: 'center'}}>
 
         </View>
-    )
-
-    const GameCode = (
-        <Text style={{fontSize: 25, textAlign: 'center', position: 'absolute', top: 70}}>Room Code: {gameState.idHolder}</Text>
     )
 
     const StartButton = (
@@ -191,15 +203,39 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
     )
 
     const InGameMenu = (
-        <View style={{borderWidth: 4, borderRadius: 5, backgroundColor: 'papayawhip', width: '50%', height: '95%', left: -110, top: 50, display: inGameMenuActive === true ? 'flex' : 'none', position: 'absolute'}}>
+        <View style={{borderWidth: 4, borderRadius: 5, backgroundColor: 'papayawhip', width: '50%', height: '95%', left: -110, top: 50, display: inGameMenuActive === true && initLeaveGame === false ? 'flex' : 'none', position: 'absolute'}}>
             <View style={{borderWidth: 2, borderRadius: 3, backgroundColor: 'lightgrey', position: 'absolute', top:-2, left: 0, width: '100%'}}>
                 <Button 
-                    title='x'
+                    title='<'
                     color='black'
                     onPress={() => setInGameMenuActive(false)}
                 />
             </View>
-            <Text style={{borderWidth: 2, borderRadius: 3, backgroundColor: 'lightgrey', position: 'absolute', alignSelf: 'center', top: 60}}>Game Code: {gameState.idHolder}</Text>
+            <Text style={{borderWidth: 2, borderRadius: 3, backgroundColor: 'lightgrey', position: 'absolute', alignSelf: 'center', top: 60, marginRight: 10, marginLeft: 10}}>Game Code: {gameState.idHolder}</Text>
+
+            {/* WILL GO AT BOTTOM OF MENU SO LEAVING SPACE FOR OTHER ELEMENTS */}
+            <TouchableOpacity style={{borderWidth: 2, borderRadius: 5, backgroundColor: 'lightgrey', alignSelf: 'center', marginTop: 700}}
+                onPress={() => setInitLeaveGame(true)}
+            >
+                <Text style={{textAlign: 'center', marginRight: 5, marginLeft: 5, fontSize: 26}}>Leave Game</Text>
+            </TouchableOpacity>
+        </View>
+    )
+
+    const LeaveGameConfirmation = (
+        <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'papayawhip', width: '85%', height: '30%', alignSelf: 'center', display: initLeaveGame === true ? 'flex' : 'none', position: 'absolute'}}>
+            <Text style={{textAlign: 'center', marginTop: 20, marginBottom: 50, fontSize: 30}}>Are You Sure You Want To Leave The Game?</Text>
+            <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 20}}>
+                <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', marginRight: 20}}>
+                    <Text style={{textAlign: 'center', marginRight: 5, marginLeft: 5, fontSize: 25}}>Yes</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey'}}
+                    onPress={() => setInitLeaveGame(false)}
+                >
+                    <Text style={{textAlign: 'center', marginRight: 7, marginLeft: 7, fontSize: 25}}>No</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     )
     
@@ -223,7 +259,7 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
             <Text style={{textAlign: 'center'}}></Text>
         }
         PlayerBorders.push(
-            <View key={i + 1} style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', position: 'absolute', borderColor: gameTurn === i + 1 ? 'red' : 'black' , minWidth: 100, maxWidth: 120, top: inGamePlayerPositions[i].pTop, left: inGamePlayerPositions[i].pLeft}}>
+            <View key={i + 1} style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', position: 'absolute', borderColor: toggleBBSelect === true && activeBBSelect === i + 1 ? 'blue' : gameTurn === i + 1 ? 'red' : 'black' , minWidth: 100, maxWidth: 120, top: inGamePlayerPositions[i].pTop, left: inGamePlayerPositions[i].pLeft}}>
                 <PlayersDisplayName />
                 <PlayersDisplayChips />
             </View>
@@ -327,11 +363,11 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         </View>
     )
 
+    //////////////////////////////////////////////////////////////////
+
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
             {PokerTable}
-            {/* {TableView} */}
-            {GameCode}
             {PlayerBorders}
             {StartButton}
             {BigBlindSelectionWindow}
@@ -342,6 +378,7 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
             {InGameMenu}
             {nextRoundButton}
             {WinnerSelectionWindow}
+            {LeaveGameConfirmation}
         </View>
     )
 
