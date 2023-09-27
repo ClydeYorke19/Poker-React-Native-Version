@@ -130,6 +130,21 @@ io.on('connection', (socket) => {
         socket.emit('sendingBackRequestDecline', alertInfo, index)
     })
 
+    socket.on('invitingPlayerToGame', (username) => {
+        if (possibleAccounts[username]) {
+            io.to(possibleAccounts[username].idHolder).emit('sendingGameInvite', {'type': 'game_invite', 'sender': userBEI.accountUsername, 'gameCode': userBEI.roomLabel});
+            socket.emit('inviteToGameConfirmed');
+        } else {
+            socket.emit('inviteToGameFailed');
+        }
+    })
+
+    socket.on('gameInviteAccepted', (alertInfo, index) => {
+        userBEI.roomLabel = alertInfo.gameCode;
+        socket.join(alertInfo.gameCode);
+        socket.emit('sendingUserToGameAfterAccept', alertInfo, index);
+    })
+
     //////////////////////////////////////////////////////////////////
 
     ////// GAME LISTENERS //////
@@ -206,6 +221,16 @@ io.on('connection', (socket) => {
 
     socket.on('initNextRound', () => {
         io.to(userBEI.roomLabel).emit('sendingBackInitNextRound');
+    })
+
+    socket.on('userLeavesGame', (turn) => {
+        globalState[userBEI.roomLabel].players[turn - 1] = '';
+        globalState[userBEI.roomLabel].pNickNames[turn - 1] = '';
+        globalState[userBEI.roomLabel].pChips[turn - 1] = '';
+
+        io.to(userBEI.roomLabel).emit('playerHasLeftGame', turn);
+
+        userBEI.roomLabel = null;
     })
 
     // PLAYER IN GAME LISTENERS //
