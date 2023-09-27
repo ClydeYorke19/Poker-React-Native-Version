@@ -15,6 +15,7 @@ class User {
     groups = {}
     groupNames = []
     groupRequests = [];
+    gameInvites = [];
     alerts = [];
 
     constructor(id, status, loggedIn, accountInfo, inGame, playerGameObject, socket) {
@@ -43,10 +44,15 @@ class User {
 
         } else if (type === 'group_request') {
             if (!this.groupRequests.includes(sender) && !this.groupNames.includes(aInfo)) {
-                this.alerts.push({'type': 'group_request', 'sender': sender, 'groupName': aInfo})
+                this.alerts.push({'type': 'group_request', 'sender': sender, 'groupName': aInfo});
                 this.groupRequests.push(sender);
             }
 
+        } else if (type === 'game_invite') {
+            if (!this.gameInvites.includes(sender)) {
+                this.alerts.push({'type': 'game_invite', 'sender': sender, 'gameCode': aInfo});
+                this.gameInvites.push(sender)
+            }
         }
 
     }
@@ -69,6 +75,13 @@ class User {
                 }
             }
 
+        } else if (alertInfo.type === 'game_invite') {
+            
+            for (let i = 0; i < this.gameInvites.length; i++) {
+                if (this.gameInvites[i] === alertInfo.sender) {
+                    this.gameInvites.splice(i, 1);
+                }
+            }
         }
 
         this.alerts.splice(index, 1);
@@ -94,6 +107,10 @@ class User {
 
     resetUserInfo() {
         // used when a user signs out or something else
+    }
+
+    leaveGame(arg) {
+        this.socket.emit('userLeavesGame', arg)
     }
 
 

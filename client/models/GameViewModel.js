@@ -1,13 +1,16 @@
-import { Button, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
+import { Button, StyleSheet, Text, View, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useRef } from 'react';
 import GameModel from './GameModel';
 import settingPlayerPositions from './PlayerPositionsModel';
+import { useNavigation } from '@react-navigation/native'
 
 var gModel;
 
 export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, playerView, setPlayerView}) => {
 
     // Variables //
+
+    const navigation = useNavigation();
 
     const roomSize = rS;
     const gameState = gameObj;
@@ -25,6 +28,12 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
     let [winnerChosen, setWinnerChosen] = useState(false);
 
     let [initLeaveGame, setInitLeaveGame] = useState(false);
+    let [initInvitingPlayer, setInitInvitingPlayer] = useState(false);
+    let [readyResponse, setReadyResponse] = useState(false);
+    let [responseText, setResponseText] = useState('')
+    let [responseStatus, setResponseStatus] = useState(0);
+    let [restrictionInvitingPlayers, setRestrictionInvitingPlayers] = useState(false);
+    let [restrictionReason, setRestrictionReason] = useState('');
 
     let [activeBBSelect, setActiveBBSelect] = useState(0);
     let [toggleBBSelect, setToggleBBSelect] = useState(false)
@@ -34,6 +43,11 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
     let [activePot, setActivePot] = useState();
     let [activeRound, setActiveRound] = useState();
     let [gameTurn, setGameTurn] = useState();
+
+    let usernameInviting = null;
+    let usernameInvitingHolder;
+
+    let usernameRef = useRef();
 
     //////////////////////////////////////////////////////////////////
 
@@ -66,6 +80,42 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         }
     }
 
+    const userInivitingPlayerToGame = () => {
+        setInGameMenuActive(false)
+        if (roomSize > gameState.players.length) {
+            setInitInvitingPlayer(true);
+        } else {
+            setRestrictionReason('The Game Lobby Is Full. You Currently Cannot Invite Other Players.')
+            setRestrictionInvitingPlayers(true);
+        }
+    }
+
+    const userXOutInvitingPlayer = () => {
+        if (readyResponse) {
+            
+            if (responseStatus === 200) {
+                setInitInvitingPlayer(false);
+                setRestrictionInvitingPlayers(false);
+                setInGameMenuActive(true);
+            } else if (responseStatus === 400) {
+                setReadyResponse(false);
+                setInitInvitingPlayer(true);
+            }
+
+            usernameRef.current.clear();
+
+        } else {
+            setInitInvitingPlayer(false);
+            setRestrictionInvitingPlayers(false);
+            setInGameMenuActive(true);
+        }
+    }
+
+    const userLeavesGame = () => {
+        user.leaveGame(user.playerGameObj.turn);
+        navigation.navigate('Home');
+    }
+
     //////////////////////////////////////////////////////////////////
 
     // User Socket On's //
@@ -85,10 +135,12 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
 
         if (gModel.bigBlind === user.playerGameObj.turn) {
             gModel.setPlayerBorders(gameState, (user.playerGameObj.chips - gModel.ante), user.playerGameObj.turn);
+            user.playerGameObj.displayChipsAnte(gModel.ante, 'bb');
         }
 
         if (gModel.smallBlind === user.playerGameObj.turn) {
             gModel.setPlayerBorders(gameState, (user.playerGameObj.chips - (gModel.ante / 2)), user.playerGameObj.turn)
+            user.playerGameObj.displayChipsAnte(gModel.ante, 'sb')
         }
 
     })
@@ -170,7 +222,23 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         setActiveRound(gModel.currentRoundName);
 
         user.playerGameObj.currentGameTurn = gModel.currentTurn;
-    })    
+    })   
+    
+    user.socket.on('inviteToGameConfirmed', () => {
+        setResponseText('Invite To Game Sent!');
+        setReadyResponse(true);
+        setResponseStatus(200);
+    })
+
+    user.socket.on('inviteToGameFailed', () => {
+        setResponseText('Invite To Game Failed. Please Try Again');
+        setReadyResponse(true);
+        setResponseStatus(400);
+    })
+
+    user.socket.on('playerHasLeftGame', (turn) => {
+        gameState.pNickNames[turn - 1] = undefined
+    })
 
     //////////////////////////////////////////////////////////////////
 
@@ -213,6 +281,13 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
             </View>
             <Text style={{borderWidth: 2, borderRadius: 3, backgroundColor: 'lightgrey', position: 'absolute', alignSelf: 'center', top: 60, marginRight: 10, marginLeft: 10}}>Game Code: {gameState.idHolder}</Text>
 
+            <TouchableOpacity style={{borderWidth: 2, borderRadius: 3, backgroundColor: 'lightgrey', position: 'absolute', top: 150, alignSelf: 'center'}}
+                onPress={() => userInivitingPlayerToGame()}
+            >
+                <Text style={{textAlign: 'center', marginRight: 5, marginLeft: 5, fontSize: 26}}>Invite Players</Text>
+            </TouchableOpacity>
+
+
             {/* WILL GO AT BOTTOM OF MENU SO LEAVING SPACE FOR OTHER ELEMENTS */}
             <TouchableOpacity style={{borderWidth: 2, borderRadius: 5, backgroundColor: 'lightgrey', alignSelf: 'center', marginTop: 700}}
                 onPress={() => setInitLeaveGame(true)}
@@ -226,7 +301,9 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'papayawhip', width: '85%', height: '30%', alignSelf: 'center', display: initLeaveGame === true ? 'flex' : 'none', position: 'absolute'}}>
             <Text style={{textAlign: 'center', marginTop: 20, marginBottom: 50, fontSize: 30}}>Are You Sure You Want To Leave The Game?</Text>
             <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 20}}>
-                <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', marginRight: 20}}>
+                <TouchableOpacity style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', marginRight: 20}}
+                    onPress={() => userLeavesGame()}
+                >
                     <Text style={{textAlign: 'center', marginRight: 5, marginLeft: 5, fontSize: 25}}>Yes</Text>
                 </TouchableOpacity>
 
@@ -363,6 +440,52 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
         </View>
     )
 
+    let InvitingUserToGameWindow = (
+        <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'papayawhip', alignSelf: 'center', justifyContent: 'center', width: '85%', height: '35%', display: initInvitingPlayer === true ? 'flex' : 'none', position: 'absolute'}}>
+            <View style={{borderWidth: 2, borderRadius: 3, backgroundColor: 'lightgrey', position: 'absolute', top:-2, left: 0, width: '100%'}}>
+                    <Button 
+                        title='X'
+                        color='black'
+                        onPress={() => userXOutInvitingPlayer()}
+                    />
+            </View>
+            <View style={{display: readyResponse === false ? 'flex' : 'none'}}>
+                <Text style={{textAlign: 'center', fontSize: 25, position: 'absolute', alignSelf: 'center', top: -85}}>Enter Username To Invite</Text>
+                <TextInput 
+                    value={usernameInvitingHolder}
+                    onChangeText={(username) => usernameInviting = username}
+                    style={styles.inputStyle}
+                    placeholder='enter here'
+                    ref={usernameRef}
+                />
+                <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'lightgrey', position: 'absolute', width: '60%', top: 50, alignSelf: 'center'}}>
+                    <Button 
+                        title='Invite'
+                        color='black'
+                        onPress={() => user.socket.emit('invitingPlayerToGame', usernameInviting)}
+                    />
+                </View>
+            </View>
+            <View style={{display: readyResponse === true ? 'flex' : 'none'}}>
+                <Text style={{textAlign: 'center', fontSize: 20}}>{responseText}</Text>  
+            </View>
+
+        </View>
+    )
+
+    let RestrictedInvitingPlayersWindow = (
+        <View style={{borderWidth: 3, borderRadius: 5, backgroundColor: 'papayawhip', alignSelf: 'center', justifyContent: 'center', width: '85%', height: '35%', display: restrictionInvitingPlayers === true ? 'flex' : 'none', position: 'absolute'}}>
+            <View style={{borderWidth: 2, borderRadius: 3, backgroundColor: 'lightgrey', position: 'absolute', top:-2, left: 0, width: '100%'}}>
+                    <Button 
+                        title='X'
+                        color='black'
+                        onPress={() => userXOutInvitingPlayer()}
+                    />
+            </View>
+            <Text style={{textAlign: 'center'}}>{restrictionReason}</Text>
+        </View>
+    )
+
     //////////////////////////////////////////////////////////////////
 
     return (
@@ -379,6 +502,8 @@ export const GameViewModel = ({rS, user, gameObj, gameStarted, setGameStart, pla
             {nextRoundButton}
             {WinnerSelectionWindow}
             {LeaveGameConfirmation}
+            {InvitingUserToGameWindow}
+            {RestrictedInvitingPlayersWindow}
         </View>
     )
 
@@ -403,6 +528,19 @@ const styles = StyleSheet.create({
 
     firstToAct: {
         borderColor: 'purple'
-    }
+    },
+
+    inputStyle: {
+        width: '80%',
+        height: 40,
+        padding: 10,
+        marginVertical: 10,
+        backgroundColor: '#DBDBD6',
+        alignSelf: 'center',
+        textAlign: 'center',
+        borderWidth: 2,
+        position: 'absolute',
+        top: -35
+    },
 })
 
