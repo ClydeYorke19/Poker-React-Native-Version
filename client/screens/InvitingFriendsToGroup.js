@@ -1,5 +1,5 @@
 import { Button, StyleSheet, Text, View, TextInput } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
 
@@ -11,6 +11,8 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
 
     let friendUsernameHolder;
     let submittedFriendUsername = null;
+
+    const usernameRef = useRef();
 
     //////////////////////////////////////////////////////////////////
 
@@ -32,12 +34,18 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
         setResponseText('Group Invite Has Been Sent!')
         setReadyResponse(true)
         setResponseType(200)
+
+        usernameRef.current.clear();
+        friendUsernameHolder = ''
     })
 
     user.socket.on('groupInviteFailed', () => {
         setResponseText('Group Invite Failed. Please Try Again.')
         setReadyResponse(true)
         setResponseType(400)
+
+        usernameRef.current.clear();
+        friendUsernameHolder = ''
     })
 
     //////////////////////////////////////////////////////////////////
@@ -45,7 +53,7 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
     return (
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: 'papayawhip'}}>
             <View style={{display: readyResponse === false ? 'flex' : 'none', justifyContent: 'center', alignContent: 'center'}}>
-                <View style={{borderBottomWidth: 3, backgroundColor: 'lightgrey', alignSelf: 'center', position: 'absolute', top: -206, width: '100%'}}>
+                <View style={{borderBottomWidth: 3, backgroundColor: 'lightgrey', alignSelf: 'center', position: 'absolute', top: -206, width: '100%', borderTopWidth: 3}}>
                     <Button 
                         title='X'
                         onPress={() => setCurrentView(false)}
@@ -57,6 +65,8 @@ const InvitingFriendsToGroup = ({user, setCurrentView, groupName}) => {
                     value={friendUsernameHolder}
                     onChangeText={(friend) => submittedFriendUsername = friend}
                     style={styles.inputStyle}
+                    placeholder='enter here'
+                    ref={usernameRef}
                 />
                 <View style={{borderWidth: 3, backgroundColor: 'lightgrey', alignSelf: 'center', position: 'absolute', top: 130}}>
                     <Button 

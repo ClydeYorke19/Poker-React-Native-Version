@@ -1,17 +1,24 @@
-import { Button, StyleSheet, Text, View, LogBox, TextInput, TouchableOpacity } from 'react-native';
+import { Button, StyleSheet, Text, View, LogBox } from 'react-native';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native'
 
-import GoHomeButton from '../Components/GoHomeButton';
-
 const ProfileInfoPage = ({route}) => {
+
+    // Variables //
+
     let user = route.params.paramKey
 
     const navigation = useNavigation();
 
+    //////////////////////////////////////////////////////////////////
+
+    // Functions //
+
     LogBox.ignoreLogs([
         'Non-serializable values were found in the navigation state',
     ]);
+
+    //////////////////////////////////////////////////////////////////
 
     return ( 
         <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'mistyrose', borderWidth: 8, borderRadius: 10, borderColor: 'lightgrey'}}>

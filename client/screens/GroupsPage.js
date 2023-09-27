@@ -85,7 +85,7 @@ const GroupsPage = ({route}) => {
             </View>
 
             <View style={{flex: 1, display: creatingGroupInit === true ? 'flex' : 'none', width: '80%', marginTop: 160}}>
-                <CreatingGroupPage creatingGroupInit={creatingGroupInit} setCreatingGroup={setCreatingGroupInit} user={user} />
+                <CreatingGroupPage setCreatingGroup={setCreatingGroupInit} user={user} />
             </View>
 
             <View style={{flex: 1, display: viewingGroup === true ? 'flex' : 'none', width: '80%', marginTop: 120}}>    

@@ -45,6 +45,10 @@ const ProfilePage = ({route}) => {
         
     })
 
+    user.socket.on('sendingGameInvite', (alertInfo) => {
+        user.addAlert(alertInfo.type, alertInfo.sender, alertInfo.gameCode);
+    }) 
+
     //////////////////////////////////////////////////////////////////
 
     return (
